@@ -3,7 +3,7 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
-VERSION=1.0.0
+VERSION=${VERSION:-1.0.0}
 
 # Universal binary (Apple Silicon + Intel) so the zip runs on any Mac.
 if swift build -c release --arch arm64 --arch x86_64 2>/dev/null; then
@@ -98,6 +98,15 @@ codesign --force --deep --sign - "$APP"
 # Zip that preserves the bundle structure and signature (use this to share).
 ditto -c -k --keepParent "$APP" "dist/PortMaster-${VERSION}.zip"
 
+# Drag-and-drop installer DMG: the app next to an /Applications symlink.
+STAGING=$(mktemp -d)
+cp -R "$APP" "$STAGING/"
+ln -s /Applications "$STAGING/Applications"
+hdiutil create -volname "PortMaster" -srcfolder "$STAGING" -format UDZO \
+    -ov -quiet "dist/PortMaster-${VERSION}.dmg"
+rm -rf "$STAGING"
+
 echo ""
 echo "Built  $APP  ($(lipo -archs "$APP/Contents/MacOS/PortMaster" 2>/dev/null || echo unknown))"
 echo "Share  dist/PortMaster-${VERSION}.zip"
+echo "       dist/PortMaster-${VERSION}.dmg"

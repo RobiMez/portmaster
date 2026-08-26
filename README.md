@@ -39,6 +39,18 @@ The app has no Dock icon or menu bar item (LSUIElement) — it lives entirely
 in the notch. Quit via the power button in the island header or the
 right-click menu.
 
+## Install
+
+Grab the latest `PortMaster-<version>.dmg` from the
+[releases page](https://github.com/robimez/portmaster/releases) and drag
+PortMaster into Applications (a zip is also available), or install via
+`curl` (which skips the Gatekeeper quarantine entirely — see below):
+
+```sh
+curl -L https://github.com/robimez/portmaster/releases/latest/download/PortMaster.zip -o /tmp/pm.zip \
+  && ditto -x -k /tmp/pm.zip /Applications
+```
+
 ## Sharing (no notarization)
 
 `./build.sh` produces `dist/PortMaster-<version>.zip` with a universal
@@ -59,16 +71,25 @@ launch is blocked with "Apple could not verify…". Either:
 
 **Frictionless alternatives:**
 
-- **Install script / curl** — `curl` doesn't set the quarantine flag, so a
-  hosted zip installed via a one-liner skips Gatekeeper entirely:
-
-  ```sh
-  curl -L https://your-host/PortMaster-1.0.0.zip -o /tmp/pm.zip \
-    && ditto -x -k /tmp/pm.zip /Applications
-  ```
+- **Install script / curl** — `curl` doesn't set the quarantine flag, so the
+  one-liner in [Install](#install) skips Gatekeeper entirely.
 
 - **Share the repo** — locally built apps are never quarantined:
   `git clone … && ./build.sh && open dist/PortMaster.app`.
+
+## Releasing (maintainers)
+
+Releases are automated via GitHub Actions — push a version tag:
+
+```sh
+git tag v1.1.0 && git push origin v1.1.0
+```
+
+The workflow builds the universal app (the tag sets the app version via the
+`VERSION` env var), verifies the binary is universal, and publishes a GitHub
+Release with the zip and DMG attached plus auto-generated notes listing the
+merged PRs (categorized by PR label via `.github/release.yml`; `feat/*` and
+`fix/*` branches are auto-labeled).
 
 ## Debug
 

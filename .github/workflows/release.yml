@@ -1,0 +1,44 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Derive version from tag
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
+
+      - name: Build app
+        run: ./build.sh
+
+      - name: Verify universal binary
+        run: |
+          archs=$(lipo -archs dist/PortMaster.app/Contents/MacOS/PortMaster)
+          echo "Architectures: $archs"
+          case "$archs" in
+            *arm64*x86_64*|*x86_64*arm64*) ;;
+            *) echo "::error::Binary is not universal ($archs)"; exit 1 ;;
+          esac
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Stable-named copies so `releases/latest/download/PortMaster.{zip,dmg}` always work.
+          cp "dist/PortMaster-${VERSION}.zip" dist/PortMaster.zip
+          cp "dist/PortMaster-${VERSION}.dmg" dist/PortMaster.dmg
+          gh release create "$GITHUB_REF_NAME" \
+            "dist/PortMaster-${VERSION}.zip" \
+            "dist/PortMaster-${VERSION}.dmg" \
+            dist/PortMaster.zip \
+            dist/PortMaster.dmg \
+            --title "PortMaster ${VERSION}" \
+            --generate-notes

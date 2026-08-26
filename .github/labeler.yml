@@ -1,0 +1,4 @@
+feat:
+  - head-branch: ["^feat"]
+fix:
+  - head-branch: ["^fix", "^bugfix"]
