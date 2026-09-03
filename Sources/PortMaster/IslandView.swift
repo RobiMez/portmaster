@@ -11,6 +11,7 @@ extension Font {
 struct IslandRootView: View {
     @ObservedObject var state: IslandState
     @ObservedObject var scanner: PortScanner
+    let openSettings: () -> Void
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -39,7 +40,7 @@ struct IslandRootView: View {
             islandShape.fill(Color.black)
 
             if state.isExpanded {
-                PortListContent(state: state, scanner: scanner)
+                PortListContent(state: state, scanner: scanner, openSettings: openSettings)
                     // Extra top padding matches the panel's overscan lift so the
                     // header lands in the same on-screen spot as before.
                     .padding(.top, state.notchHeight + IslandState.topOverscan)
@@ -73,6 +74,7 @@ struct IslandRootView: View {
         .contextMenu {
             Button("Refresh") { scanner.scanNow() }
             Button("Use Menu Bar Mode") { state.mode = .menuBar }
+            Button("Settings…") { openSettings() }
             Divider()
             Button("Quit PortMaster") { NSApp.terminate(nil) }
         }
@@ -106,9 +108,10 @@ private struct CollapsedPill: View {
 struct MenuBarPopoverView: View {
     @ObservedObject var state: IslandState
     @ObservedObject var scanner: PortScanner
+    let openSettings: () -> Void
 
     var body: some View {
-        PortListContent(state: state, scanner: scanner, showsPin: false)
+        PortListContent(state: state, scanner: scanner, openSettings: openSettings, showsPin: false)
             .frame(width: state.expandedWidth)
             .background(Color.black)
     }
@@ -121,6 +124,7 @@ struct MenuBarPopoverView: View {
 struct PortListContent: View {
     @ObservedObject var state: IslandState
     @ObservedObject var scanner: PortScanner
+    let openSettings: () -> Void
     var showsPin: Bool = true
     @State private var hoveredRow: String?
 
@@ -161,6 +165,9 @@ struct PortListContent: View {
                 help: state.mode == .notch ? "Switch to menu bar" : "Switch to notch"
             ) {
                 state.toggleMode()
+            }
+            IconButton(symbol: "gearshape", help: "Settings") {
+                openSettings()
             }
             IconButton(symbol: "power", help: "Quit PortMaster") {
                 NSApp.terminate(nil)

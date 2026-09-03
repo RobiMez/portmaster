@@ -64,12 +64,14 @@ final class NotchWindowController {
     let panel: NotchPanel
     private let container = IslandHitTestView()
 
-    init(state: IslandState, scanner: PortScanner) {
+    init(state: IslandState, scanner: PortScanner, openSettings: @escaping () -> Void) {
         panel = NotchPanel(contentRect: NSRect(origin: .zero, size: IslandState.windowSize))
         panel.islandState = state
         container.islandState = state
 
-        let hosting = NSHostingView(rootView: IslandRootView(state: state, scanner: scanner))
+        let hosting = NSHostingView(
+            rootView: IslandRootView(state: state, scanner: scanner, openSettings: openSettings)
+        )
         hosting.frame = container.bounds
         hosting.autoresizingMask = [.width, .height]
         container.addSubview(hosting)

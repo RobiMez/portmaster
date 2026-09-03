@@ -3,7 +3,9 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
-VERSION=1.0.0
+# Version is owned by AppInfo.swift so the app and the bundle can't disagree.
+VERSION=$(sed -n 's/.*static let version = "\([^"]*\)".*/\1/p' Sources/PortMaster/AppInfo.swift)
+[[ -n "$VERSION" ]] || { echo "Could not read version from AppInfo.swift" >&2; exit 1; }
 
 # Universal binary (Apple Silicon + Intel) so the zip runs on any Mac.
 if swift build -c release --arch arm64 --arch x86_64 2>/dev/null; then

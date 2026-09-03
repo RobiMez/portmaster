@@ -4,13 +4,17 @@ import Combine
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private let state = IslandState()
     private let scanner = PortScanner()
+    private let settings = AppSettings()
     private var windowController: NotchWindowController?
     private var menuBarController: MenuBarController?
+    private var settingsController: SettingsWindowController?
     private var cancellables = Set<AnyCancellable>()
     private var clickMonitor: Any?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        let controller = NotchWindowController(state: state, scanner: scanner)
+        let controller = NotchWindowController(state: state, scanner: scanner) { [weak self] in
+            self?.showSettings()
+        }
         windowController = controller
 
         // Keep the island's height + collapsed badge in sync with the scan.
@@ -33,6 +37,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         state.$isExpanded
             .removeDuplicates()
             .sink { [weak self] in self?.scanner.setActive($0) }
+            .store(in: &cancellables)
+
+        // Re-arm the scan timer when the user changes the frequency settings.
+        // @Published replays current values on subscription, so the persisted
+        // intervals apply before start() schedules the first scan.
+        settings.$activeInterval
+            .combineLatest(settings.$idleInterval)
+            .sink { [weak self] in self?.scanner.updateIntervals(active: $0, idle: $1) }
             .store(in: &cancellables)
 
         // Show the surface matching the persisted (or default) mode.
@@ -62,6 +74,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             state.isPinned = true
             state.isExpanded = true
         }
+
+        if ProcessInfo.processInfo.environment["PORTMASTER_OPEN_SETTINGS"] == "1" {
+            showSettings()
+        }
     }
 
     /// Switch to the requested surface, hiding the other one.
@@ -73,10 +89,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         case .menuBar:
             windowController?.panel.orderOut(nil)
             if menuBarController == nil {
-                menuBarController = MenuBarController(state: state, scanner: scanner)
+                menuBarController = MenuBarController(state: state, scanner: scanner) { [weak self] in
+                    self?.showSettings()
+                }
             }
             menuBarController?.activate()
         }
+    }
+
+    private func showSettings() {
+        state.collapse()
+        if settingsController == nil {
+            settingsController = SettingsWindowController(state: state, settings: settings)
+        }
+        settingsController?.show()
     }
 
     private func positionWindow() {

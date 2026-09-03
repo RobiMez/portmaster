@@ -8,19 +8,23 @@ import SwiftUI
 final class MenuBarController: NSObject, NSPopoverDelegate {
     private let state: IslandState
     private let scanner: PortScanner
+    private let openSettingsAction: () -> Void
 
     private var statusItem: NSStatusItem?
     private let popover = NSPopover()
     private var cancellables = Set<AnyCancellable>()
 
-    init(state: IslandState, scanner: PortScanner) {
+    init(state: IslandState, scanner: PortScanner, openSettings: @escaping () -> Void) {
         self.state = state
         self.scanner = scanner
+        self.openSettingsAction = openSettings
         super.init()
 
         popover.behavior = .transient
         popover.delegate = self
-        let hosting = NSHostingController(rootView: MenuBarPopoverView(state: state, scanner: scanner))
+        let hosting = NSHostingController(
+            rootView: MenuBarPopoverView(state: state, scanner: scanner, openSettings: openSettings)
+        )
         hosting.sizingOptions = [.preferredContentSize]
         popover.contentViewController = hosting
     }
@@ -87,6 +91,8 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
         let menu = NSMenu()
         menu.addItem(withTitle: "Use Notch Mode", action: #selector(switchToNotch), keyEquivalent: "")
             .target = self
+        menu.addItem(withTitle: "Settings…", action: #selector(openSettings), keyEquivalent: ",")
+            .target = self
         menu.addItem(.separator())
         menu.addItem(withTitle: "Quit PortMaster", action: #selector(quit), keyEquivalent: "q")
             .target = self
@@ -99,6 +105,10 @@ final class MenuBarController: NSObject, NSPopoverDelegate {
 
     @objc private func switchToNotch() {
         state.mode = .notch
+    }
+
+    @objc private func openSettings() {
+        openSettingsAction()
     }
 
     @objc private func quit() {

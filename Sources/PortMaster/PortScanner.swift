@@ -101,6 +101,9 @@ final class PortScanner: ObservableObject {
     @Published private(set) var usage: [Int32: ProcessUsage] = [:]
 
     private var timer: Timer?
+    private var isActive = false
+    private var activeInterval: TimeInterval = 2
+    private var idleInterval: TimeInterval = 15
     private var interval: TimeInterval = 15
     private let queue = DispatchQueue(label: "portmaster.scan", qos: .userInitiated)
     private var isScanning = false
@@ -122,11 +125,24 @@ final class PortScanner: ObservableObject {
     }
 
     func setActive(_ active: Bool) {
-        let newInterval: TimeInterval = active ? 2 : 15
-        guard newInterval != interval else { return }
-        interval = newInterval
-        reschedule()
-        if active { scanNow() }
+        isActive = active
+        applyInterval(scanImmediately: active)
+    }
+
+    /// Called when the user changes scan-frequency settings; re-arms the live timer.
+    func updateIntervals(active: TimeInterval, idle: TimeInterval) {
+        activeInterval = active
+        idleInterval = idle
+        applyInterval(scanImmediately: false)
+    }
+
+    private func applyInterval(scanImmediately: Bool) {
+        let newInterval = isActive ? activeInterval : idleInterval
+        if newInterval != interval {
+            interval = newInterval
+            reschedule()
+        }
+        if scanImmediately { scanNow() }
     }
 
     private func reschedule() {
